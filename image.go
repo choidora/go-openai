@@ -180,9 +180,11 @@ func (c *Client) CreateEditImage(ctx context.Context, request ImageEditRequest) 
 		return
 	}
 
-	err = builder.WriteField("response_format", request.ResponseFormat)
-	if err != nil {
-		return
+	if request.ResponseFormat != "" {
+		err = builder.WriteField("response_format", request.ResponseFormat)
+		if err != nil {
+			return
+		}
 	}
 
 	err = builder.Close()

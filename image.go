@@ -151,7 +151,7 @@ func (c *Client) CreateEditImage(ctx context.Context, request ImageEditRequest) 
 	builder := c.createFormBuilder(body)
 
 	// image, filename is not required
-	err = builder.CreateFormFileReader("image", request.Image, "")
+	err = builder.CreateFormFileReaderWithContentType("image", request.Image, "", "image/png")
 	if err != nil {
 		return
 	}

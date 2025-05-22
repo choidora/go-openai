@@ -3,6 +3,7 @@ package openai
 import (
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/textproto"
 	"os"
@@ -13,6 +14,7 @@ import (
 type FormBuilder interface {
 	CreateFormFile(fieldname string, file *os.File) error
 	CreateFormFileReader(fieldname string, r io.Reader, filename string) error
+	CreateFormFileReaderWithContentType(fieldname string, r io.Reader, filename, contentType string) error
 	WriteField(fieldname, value string) error
 	Close() error
 	FormDataContentType() string
@@ -42,6 +44,14 @@ func escapeQuotes(s string) string {
 // The filename in parameters can be an empty string.
 // The filename in Content-Disposition is required, But it can be an empty string.
 func (fb *DefaultFormBuilder) CreateFormFileReader(fieldname string, r io.Reader, filename string) error {
+	return fb.CreateFormFileReaderWithContentType(fieldname, r, filename, "")
+}
+
+// CreateFormFileReaderWithContentType creates a form field with a file reader and a content type.
+// The filename in parameters can be an empty string.
+// The filename in Content-Disposition is required, But it can be an empty string.
+// The contentType is validated and set in the header. If the contentType is not valid, it will not be set in the header.
+func (fb *DefaultFormBuilder) CreateFormFileReaderWithContentType(fieldname string, r io.Reader, filename, contentType string) error {
 	h := make(textproto.MIMEHeader)
 	h.Set(
 		"Content-Disposition",
@@ -51,6 +61,13 @@ func (fb *DefaultFormBuilder) CreateFormFileReader(fieldname string, r io.Reader
 			escapeQuotes(filepath.Base(filename)),
 		),
 	)
+
+	// Validate the contentType.
+	// Note: The 'mime' package (import "mime") must be imported in your Go file.
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err == nil {
+		h.Set("Content-Type", mediaType)
+	}
 
 	fieldWriter, err := fb.writer.CreatePart(h)
 	if err != nil {

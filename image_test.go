@@ -12,10 +12,11 @@ import (
 )
 
 type mockFormBuilder struct {
-	mockCreateFormFile       func(string, *os.File) error
-	mockCreateFormFileReader func(string, io.Reader, string) error
-	mockWriteField           func(string, string) error
-	mockClose                func() error
+	mockCreateFormFile                      func(string, *os.File) error
+	mockCreateFormFileReader                func(string, io.Reader, string) error
+	mockCreateFormFileReaderWithContentType func(string, io.Reader, string, string) error
+	mockWriteField                          func(string, string) error
+	mockClose                               func() error
 }
 
 func (fb *mockFormBuilder) CreateFormFile(fieldname string, file *os.File) error {
@@ -24,6 +25,10 @@ func (fb *mockFormBuilder) CreateFormFile(fieldname string, file *os.File) error
 
 func (fb *mockFormBuilder) CreateFormFileReader(fieldname string, r io.Reader, filename string) error {
 	return fb.mockCreateFormFileReader(fieldname, r, filename)
+}
+
+func (fb *mockFormBuilder) CreateFormFileReaderWithContentType(fieldname string, r io.Reader, filename, contentType string) error {
+	return fb.mockCreateFormFileReaderWithContentType(fieldname, r, filename, contentType)
 }
 
 func (fb *mockFormBuilder) WriteField(fieldname, value string) error {
@@ -54,7 +59,7 @@ func TestImageFormBuilderFailures(t *testing.T) {
 	}
 
 	mockFailedErr := fmt.Errorf("mock form builder fail")
-	mockBuilder.mockCreateFormFileReader = func(string, io.Reader, string) error {
+	mockBuilder.mockCreateFormFileReaderWithContentType = func(string, io.Reader, string, string) error {
 		return mockFailedErr
 	}
 	_, err := client.CreateEditImage(ctx, req)

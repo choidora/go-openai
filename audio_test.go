@@ -123,6 +123,10 @@ func (f *failingFormBuilder) CreateFormFileReader(_ string, _ io.Reader, _ strin
 	return f.err
 }
 
+func (f *failingFormBuilder) CreateFormFileReaderWithContentType(_ string, _ io.Reader, _ string, _ string) error {
+	return f.err
+}
+
 func (f *failingFormBuilder) WriteField(_, _ string) error {
 	return nil
 }

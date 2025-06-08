@@ -207,6 +207,87 @@ func (c *Client) CreateEditImage(ctx context.Context, request ImageEditRequest) 
 	return
 }
 
+type MultiImageEditRequest struct {
+	Images         []io.Reader `json:"images,omitempty"`          // List of images to edit
+	Prompt         string      `json:"prompt,omitempty"`          // Prompt for the image edit
+	Model          string      `json:"model,omitempty"`           // Model to use for the image edit
+	N              int         `json:"n,omitempty"`               // Number of images to generate
+	Size           string      `json:"size,omitempty"`            // Size of the generated images
+	ResponseFormat string      `json:"response_format,omitempty"` // Format of the response (e.g., "b64_json", "url")
+	Quality        string      `json:"quality,omitempty"`         // Quality of the generated images
+	User           string      `json:"user,omitempty"`            // User identifier for tracking
+}
+
+func (c *Client) CreateMultiEditImage(ctx context.Context, request MultiImageEditRequest) (response ImageResponse, err error) {
+	if len(request.Images) < 1 {
+		return
+	}
+
+	if len(request.Images) == 1 {
+		return c.CreateEditImage(ctx, ImageEditRequest{
+			Image:          request.Images[0],
+			Prompt:         request.Prompt,
+			Model:          request.Model,
+			N:              request.N,
+			Size:           request.Size,
+			ResponseFormat: request.ResponseFormat,
+			Quality:        request.Quality,
+			User:           request.User,
+		})
+	}
+	body := &bytes.Buffer{}
+	builder := c.createFormBuilder(body)
+
+	// image, filename is not required
+	for _, image := range request.Images {
+		err = builder.CreateFormFileReaderWithContentType("image[]", image, "", "image/png")
+		if err != nil {
+			return
+		}
+	}
+
+	err = builder.WriteField("prompt", request.Prompt)
+	if err != nil {
+		return
+	}
+
+	err = builder.WriteField("n", strconv.Itoa(request.N))
+	if err != nil {
+		return
+	}
+
+	err = builder.WriteField("size", request.Size)
+	if err != nil {
+		return
+	}
+
+	if request.ResponseFormat != "" {
+		err = builder.WriteField("response_format", request.ResponseFormat)
+		if err != nil {
+			return
+		}
+	}
+
+	err = builder.Close()
+	if err != nil {
+		return
+	}
+
+	req, err := c.newRequest(
+		ctx,
+		http.MethodPost,
+		c.fullURL("/images/edits", withModel(request.Model)),
+		withBody(body),
+		withContentType(builder.FormDataContentType()),
+	)
+	if err != nil {
+		return
+	}
+
+	err = c.sendRequest(req, &response)
+	return
+}
+
 // ImageVariRequest represents the request structure for the image API.
 type ImageVariRequest struct {
 	Image          io.Reader `json:"image,omitempty"`
